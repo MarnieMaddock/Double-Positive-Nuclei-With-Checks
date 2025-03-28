@@ -181,7 +181,7 @@ function processFile(dir1, resultsDir, file){
 	    			run("Watershed");
 				} // Watershed segments cells close together
 			}
-			wait(1000);
+			wait(3000);
 			
 			// ===== Nuclei Positive Cell Analysis =====
 			// Select the nuclei channel
@@ -191,7 +191,13 @@ function processFile(dir1, resultsDir, file){
 			// Show all ROIs so you can review or edit them.
 			roiManager("Show All");
 		    waitForUser("Check ROIs", "Review or edit these ROIs in the ROI Manager. You can add, delete, or merge them. When satisfied, click OK.");
-		    
+		    // Refresh the overlay:
+			// Clear any current overlay from the active image.
+			run("Remove Overlay");
+			
+			// Re-add the ROIs from the ROI Manager to update the overlay.
+			roiManager("Show All");
+
 		    // Clear any previous Results/Summary windows.
 			if (isOpen("Results")) close("Results");
 			if (isOpen("Summary")) close("Summary");
@@ -229,6 +235,11 @@ function processFile(dir1, resultsDir, file){
 				waitForUser("Check ROIs", 
 		    			"Review or edit these ROIs in the ROI Manager. " +
 		    			"You can add, delete, or merge them. When satisfied, click OK.");
+		    	// Clear any current overlay from the active image.
+				run("Remove Overlay");
+				
+				// Re-add the ROIs from the ROI Manager to update the overlay.
+				roiManager("Show All");
 		    	// Close old Summary/Results so they don't linger
 				if (isOpen("Results")) close("Results");
 				if (isOpen("Summary")) close("Summary");
@@ -266,14 +277,61 @@ function processFile(dir1, resultsDir, file){
 			// Code to combine all the saved files into one summary file called combined_summary
 concatSummaryFiles(resultsDir, C1_name +"_summary_", C1_name + "_summary_combined.csv");
 concatSummaryFiles(resultsDir, C2_name + "_Coloc_summary_", C2_name + "_Coloc_summary_combined.csv");
-combineSideBySide(resultsDir + C1_name + "_summary_combined.csv", resultsDir + C2_name + "_Coloc_summary_combined.csv", resultsDir + "Combined_summary.csv");
+
+// Call the function with an array of files
+files = newArray(resultsDir + C1_name + "_summary_combined.csv",
+                 resultsDir + C2_name + "_Coloc_summary_combined.csv");
+combineSideBySide(resultsDir + "Combined_summary.csv", files);
+
+function combineSideBySide(outputFile, files) {
+    // Initialize variables to hold file contents and max lines
+    fileContents = newArray(files.length);
+    maxLength = 0;
+
+    // Load each file's contents as a single string
+    for (i = 0; i < files.length; i++) {
+        fileContents[i] = File.openAsString(files[i]);
+        lines = split(fileContents[i], "\n");
+        if (lines.length > maxLength) {
+            maxLength = lines.length;
+        }
+    }
+
+    // Create combined content
+    combinedContent = "";
+	for (i = 0; i < maxLength; i++) {
+	    row = "";
+	    for (j = 0; j < fileContents.length; j++) {
+	        lines = split(fileContents[j], "\n");
+	        if (i < lines.length) {
+	            currentLine = trim(lines[i]);
+	            // Skip truly empty lines if you want
+	            if (currentLine == "") {
+	                currentLine = "";
+	            }
+	            row += currentLine;
+	        }
+	        if (j < fileContents.length - 1) {
+	            row += ",";
+	        }
+	    }
+	    // Optionally skip a row if it is entirely blank
+	    if (trim(row) != "") {
+	        combinedContent += row + "\n";
+	    }
+	}
+
+    // Save combined content to the output file
+    File.saveString(combinedContent, outputFile);
+}
+
 
 function concatSummaryFiles(dir, prefix, outputFileName) {
     fileList = getFileList(dir);
     outputFile = dir + outputFileName;
 
     // Create or clear the output file
-    File.saveString("Summary Data\n", outputFile);
+    File.saveString("", outputFile);
 
     firstFile = true;
     for (i = 0; i < fileList.length; i++) {
@@ -295,11 +353,14 @@ function concatSummaryFiles(dir, prefix, outputFileName) {
             } else {
                 // Skip the first line (header) for subsequent files
                 contentToAppend = "";
-                for (j = 1; j < lines.length; j++) {
-                    if (lengthOf(trim(lines[j])) > 0) { // Skip empty lines
-                        contentToAppend += lines[j] + "\n";
-                    }
-                }
+				for (j = 0; j < lines.length; j++) {
+				    if (j == 0 && lines[j] == "Summary Data") {
+				        continue; // Skip the "Summary Data" header.
+				    }
+				    if (lengthOf(trim(lines[j])) > 0) {
+				        contentToAppend += lines[j] + "\n";
+				    }
+				}
             }
 
             // Append content only if it's not empty
@@ -308,43 +369,6 @@ function concatSummaryFiles(dir, prefix, outputFileName) {
             }
         }
     }
-}
-
-function combineSideBySide(file1, file2, outputFile) {
-    // Read both files
-    content1 = File.openAsString(file1);
-    content2 = File.openAsString(file2);
-
-    // Split into lines
-    lines1 = split(content1, "\n");
-    lines2 = split(content2, "\n");
-
-    // Find the maximum length
-    maxLength = lines1.length;
-    if (lines2.length > maxLength) {
-        maxLength = lines2.length;
-    }
-
-    // Create combined content
-    combinedContent = "";
-    for (i = 0; i < maxLength; i++) {
-        if (i < lines1.length) {
-            line1 = lines1[i];
-        } else {
-            line1 = "";
-        }
-
-        if (i < lines2.length) {
-            line2 = lines2[i];
-        } else {
-            line2 = "";
-        }
-
-        combinedContent += line1 + "," + line2 + "\n";
-    }
-
-    // Save combined content to output file
-    File.saveString(combinedContent, outputFile);
 }
 
 close("*");
