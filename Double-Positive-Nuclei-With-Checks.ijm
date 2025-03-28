@@ -265,8 +265,8 @@ function processFile(dir1, resultsDir, file){
 			
 			// Code to combine all the saved files into one summary file called combined_summary
 concatSummaryFiles(resultsDir, C1_name +"_summary_", C1_name + "_summary_combined.csv");
-concatSummaryFiles(resultsDir, C2_name + "Coloc_summary_", C2_name + "Coloc_summary_combined.csv");
-combineSideBySide(resultsDir + C1_name + "_summary_combined.csv", resultsDir + C2_name + "Coloc_summary_combined.csv", resultsDir + "Combined_summary.csv");
+concatSummaryFiles(resultsDir, C2_name + "_Coloc_summary_", C2_name + "_Coloc_summary_combined.csv");
+combineSideBySide(resultsDir + C1_name + "_summary_combined.csv", resultsDir + C2_name + "_Coloc_summary_combined.csv", resultsDir + "Combined_summary.csv");
 
 function concatSummaryFiles(dir, prefix, outputFileName) {
     fileList = getFileList(dir);
