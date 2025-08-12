@@ -5,7 +5,7 @@ This is an open-source, FIJI macro that automatically counts cells that have co-
 ## How It Works
 
 1. **Folder of TIFF Images**: All images need to be saved as a TIFF in a folder on your computer. To automatically convert .lif files to TIFF, see https://github.com/MarnieMaddock/Lif-to-Tif.
-2. **Add Adaptive Threshold Plugin**: Install Adaptive Threshold Plugin using instructions given here: https://sites.google.com/site/qingzongtseng/adaptivethreshold.
+2. **Add Adaptive Threshold Plugin**: Install Adaptive Threshold Plugin using instructions given here: https://sites.google.com/site/qingzongtseng/adaptivethreshold. Ensure when naming the plugin use adaptiveThr (check capitalisation)
 3. **Open macro in FIJI**: Drag and Drop Double-Positive-Nuclei-With-Checks.ijm into the FIJI console.
 4. **Run**: Press Run on the macro.
 5. **Customise Analysis**: The macro will ask to select the folder containing TIFF images to be analysed. A pop-up box will appear to guide users into specifying the channels that correspond to the nucleus vs target, and the names of the targets e.g. DAPI and SOX10. The macro will propmt the user to specify the pre-processing filters and settings they prefer.
