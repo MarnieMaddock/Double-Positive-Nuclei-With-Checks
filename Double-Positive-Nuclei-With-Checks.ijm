@@ -104,6 +104,65 @@ max_circularity = Dialog.getNumber();
 ap_options = "size=" + min_size + "-Infinity circularity=" + min_circularity + "-" + max_circularity + " show=Overlay display exclude clear summarize overlay add";
 
 
+//--------Save options selected to a txt file---------
+// Example snippet for building the options text in ImageJ macro language
+
+optionsText = "Channel Names:\n";
+optionsText += "  Nuclei channel: " + C1_name + "\n";
+optionsText += "  Localising channel: " + C2_name + "\n\n";
+
+optionsText += "Channel Numbers:\n";
+optionsText += "  " + C1_name + " channel: " + C1_num + "\n";
+optionsText += "  " + C2_name + " channel: " + C2_num + "\n";
+
+if (hasTrans) {
+    optionsText += "  Transmitted light channel: Yes, channel " + TL_num + "\n";
+} else {
+    optionsText += "  Transmitted light channel: No\n";
+}
+
+// Use if/else for keep_transmitted
+if (keep_transmitted) {
+    optionsText += "  Keep transmitted light open: Yes\n\n";
+} else {
+    optionsText += "  Keep transmitted light open: No\n\n";
+}
+
+optionsText += "Pre-processing Options:\n";
+if (median_filter) {
+    optionsText += "  Median Filter: Yes, radius " + median_filter_radius + "\n";
+} else {
+    optionsText += "  Median Filter: No\n";
+}
+
+if (unsharp_mask) {
+    optionsText += "  Unsharp Mask: Yes, radius " + unsharp_radius + ", weight " + unsharp_weight + "\n";
+} else {
+    optionsText += "  Unsharp Mask: No\n";
+}
+
+if (watershed) {
+    optionsText += "  Watershed: Yes\n\n";
+} else {
+    optionsText += "  Watershed: No\n\n";
+}
+
+optionsText += "Threshold Settings:\n";
+optionsText += "  Block size: " + block_num + "\n";
+optionsText += "  Then Subtract: " + subtract_num + "\n\n";
+
+optionsText += "Analyze Particles Settings:\n";
+optionsText += "  Minimum Particle Size: " + min_size + "\n";
+optionsText += "  Circularity: " + min_circularity + " - " + max_circularity + "\n\n";
+
+// Append file save information and current date
+optionsText += "\nCSV files saved to: " + resultsDir + "\n";
+optionsText += "ROI images saved to: " + resultsDir2 + "\n";
+
+
+// Save the options to a text file in your results directory
+File.saveString(optionsText, resultsDir + "Analysis_Options.txt");
+
 // Start Batch Processing of .tif files
 processFolder(dir1);
 function processFolder(dir1) {
@@ -131,6 +190,7 @@ function processFile(dir1, resultsDir, file){
 			    run("Z Project...", "projection=[Max Intensity]");
 			    rename(title); // Rename the max projection to not include "MAX_"
 			} 
+			
 			// Split the channels
 			run("Split Channels");
 			
@@ -155,11 +215,32 @@ function processFile(dir1, resultsDir, file){
 			        }
 			    }
 			}
-
+			
+			// --- Duplicate selected channels for reference ---			
+			// For channel C1:
+			selectWindow("C" + C1_num + "-" + title);
+			run("Duplicate...", " ");  // duplicate the current image
+			rename(getTitle() + "_duplicate");  // rename the newly duplicated image
+			C1_dupe_title = getTitle();
+			
+			// For channel C2:
+			selectWindow("C" + C2_num + "-" + title);
+			run("Duplicate...", " ");
+			rename(getTitle() + "_duplicate");
+			C2_dupe_title = getTitle();
+			
+			// Create coloc image
+			if (isOpen(C1_dupe_title) && isOpen(C2_dupe_title)) {
+			// Merge the two channels into a composite image
+    		run("Merge Channels...", "c1=[" + C1_dupe_title + "] c2=[" + C2_dupe_title + "] create keep");
+    		rename(getTitle() + "_coloc");
+    		coloc_dupe_title = getTitle();
+			}
+			
 			// Create an array of channels you want to pre-process (for example, C1 and C2)
 			channelsToProcess = newArray(C1_num, C2_num);
-			
-						
+
+			// --- Pre-process the selected channels ---	
 			for (i = 0; i < channelsToProcess.length; i++) {
 			    channel = channelsToProcess[i];
 			    // Select the current channel's window, e.g., "C1-<title>" or "C2-<title>"
@@ -179,21 +260,25 @@ function processFile(dir1, resultsDir, file){
 	    			run("Watershed");
 				} // Watershed segments cells close together
 			}
-			wait(3000);
+			wait(2000);
 			
 			// ===== Nuclei Positive Cell Analysis =====
 			// Select the nuclei channel
 			selectWindow("C" + C1_num + "-" + title);
 			run("Analyze Particles...", ap_options);
 			
+			
+selectWindow(C1_dupe_title);
 			// Show all ROIs so you can review or edit them.
 			roiManager("Show All");
 		    waitForUser("Check ROIs", "Review or edit these ROIs in the ROI Manager. You can add, delete, or merge them. When satisfied, click OK.");
-		    // Refresh the overlay:
+		    
+// Refresh the overlay:
 			// Clear any current overlay from the active image.
 			run("Remove Overlay");
 			
-			// Re-add the ROIs from the ROI Manager to update the overlay.
+			
+			// Re-add the ROIs from the ROI Manager to update the overlay on the original image
 			roiManager("Show All");
 
 		    // Clear any previous Results/Summary windows.
@@ -222,13 +307,17 @@ function processFile(dir1, resultsDir, file){
 			saveAs("Results", resultsDir + File.separator + C1_name + "_summary_" + title +".csv");
 			close("Results");
 			wait(500);
-			
+			selectWindow("C" + C1_num + "-" + title);
+			saveAs("Tiff", resultsDir2 + File.separator + C1_name + "_DAPI_ROI_" + title + ".tif");
+			rename("C" + C1_num + "-" + title);			
 			// ===== Nuclei + Target Colocalisation =====
 			imageCalculator("AND create", "C" + C1_num + "-" + title,"C" + C2_num + "-" + title);
 			if (isOpen("Result of C" + C1_num + "-" + title)) {
 				wait(500);
 				selectWindow("Result of C" + C1_num + "-" + title);
 				run("Analyze Particles...", ap_options);
+				
+				selectWindow(coloc_dupe_title);
 				roiManager("Show All");
 				waitForUser("Check ROIs", 
 		    			"Review or edit these ROIs in the ROI Manager. " +
@@ -268,6 +357,7 @@ function processFile(dir1, resultsDir, file){
 				saveAs("Tiff", resultsDir2 + File.separator + C2_name + "_Coloc_image_" + title + ".tif");
 				close();
 				close(C2_name + "_Coloc_image_" + title + ".tif");
+				close("*");
 			}
 				
 }	
@@ -371,6 +461,10 @@ function concatSummaryFiles(dir, prefix, outputFileName) {
 
 close("*");
 close("Results");
+// Display a message with the directories where CSV files and ROI images were saved
+showMessage("Files Saved", 
+    "CSV files saved to: " + resultsDir + "\n" +
+    "ROI images saved to: " + resultsDir2);
 exit("Done");
 			
 			
