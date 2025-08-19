@@ -268,7 +268,7 @@ function processFile(dir1, resultsDir, file){
 			run("Analyze Particles...", ap_options);
 			
 			
-selectWindow(C1_dupe_title);
+			selectWindow(C1_dupe_title);
 			// Show all ROIs so you can review or edit them.
 			roiManager("Show All");
 		    waitForUser("Check ROIs", "Review or edit these ROIs in the ROI Manager. You can add, delete, or merge them. When satisfied, click OK.");
@@ -280,7 +280,7 @@ selectWindow(C1_dupe_title);
 			
 			// Re-add the ROIs from the ROI Manager to update the overlay on the original image
 			roiManager("Show All");
-
+selectWindow(C1_dupe_title);
 		    // Clear any previous Results/Summary windows.
 			if (isOpen("Results")) close("Results");
 			if (isOpen("Summary")) close("Summary");
@@ -292,6 +292,7 @@ selectWindow(C1_dupe_title);
 			roiManager("Measure");
 			// Generate a new Summary table based on the updated Results table
 			// Get the current number of ROIs.
+			selectWindow(C1_dupe_title);
 			roiCount = roiManager("count"); // Count number of cells
 			imageName = getTitle();
 			
@@ -333,11 +334,12 @@ selectWindow(C1_dupe_title);
 		
 		    	// Ensure no ROI is actively selected
 				roiManager("Deselect");
-				
+				selectWindow(coloc_dupe_title);
 				// Measure all ROIs currently in the ROI Manager to update the Results table
 				roiManager("Measure");
 				// Generate a new Summary table based on the updated Results table
 				// Get the current number of ROIs.
+				selectWindow(coloc_dupe_title);
 				roiCount = roiManager("count"); // Count number of cells
 				imageName = getTitle();
 				
